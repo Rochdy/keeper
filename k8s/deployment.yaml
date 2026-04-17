@@ -17,7 +17,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: grade-submission-api
-        image: ghcr.io/roshdy/keeper:latest
+        image: ghcr.io/rochdy/keeper:0d03efcfbc6daa4052fdad8bc5762866188aecf0
         ports:
         - containerPort: 3000
         resources:
