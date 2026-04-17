@@ -10,7 +10,7 @@ let grades = [];
 
 app.get('/grades', (req, res) => {
   console.log('Received GET -request for grades');
-  res.json(grades);
+  res.json({ 'grades': grades });
 });
 
 app.post('/grades', (req, res) => {
