@@ -13,45 +13,79 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      - name: Set image registry prefix
+        id: images
+        run: |
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "owner=${OWNER}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
-        uses: docker/login-action@v2
+        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Set lowercase repo name
-        id: repo
-        run: echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-  
-      - name: Build and push image
-        uses: docker/build-push-action@v4
+      - name: Build and push API image
+        if: steps.changes.outputs.backend == 'true'
+        uses: docker/build-push-action@v5
         with:
-          context: .
+          context: backend
+          file: backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.repo.outputs.repo }}:latest
-            ghcr.io/${{ steps.repo.outputs.repo }}:${{ github.sha }}
+            ghcr.io/${{ steps.images.outputs.owner }}/keeper-api:latest
+            ghcr.io/${{ steps.images.outputs.owner }}/keeper-api:${{ github.sha }}
+
+      - name: Build and push frontend image
+        if: steps.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.images.outputs.owner }}/keeper-frontend:latest
+            ghcr.io/${{ steps.images.outputs.owner }}/keeper-frontend:${{ github.sha }}
 
       - name: Update deployment manifest
+        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
         run: |
+          OWNER="${{ steps.images.outputs.owner }}"
+          SHA="${{ github.sha }}"
           echo "Before:"
-          grep image k8s/deployment.yaml
-      
-          sed -i "s|image: .*|image: ghcr.io/${{ steps.repo.outputs.repo }}:${{ github.sha }}|g" k8s/deployment.yaml
-      
+          grep -r "image:" k8s/ --include="*.yaml" || true
+          if [ "${{ steps.changes.outputs.backend }}" = "true" ]; then
+            sed -i "s|image: ghcr.io/.*/keeper-api:.*|image: ghcr.io/${OWNER}/keeper-api:${SHA}|" k8s/api/deployment.yaml
+          fi
+          if [ "${{ steps.changes.outputs.frontend }}" = "true" ]; then
+            sed -i "s|image: ghcr.io/.*/keeper-frontend:.*|image: ghcr.io/${OWNER}/keeper-frontend:${SHA}|" k8s/frontend/deployment.yaml
+          fi
           echo "After:"
-          grep image k8s/deployment.yaml
+          grep -r "image:" k8s/ --include="*.yaml" || true
 
       - name: Commit and push changes
+        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add k8s/deployment.yaml
-          git commit -m "Update image to ${{ github.sha }}" || echo "No changes"
+          git add k8s/
+          git commit -m "Update container image(s) to ${{ github.sha }}" || echo "No changes"
           git push

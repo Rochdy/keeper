@@ -17,7 +17,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: grade-submission-api
-        image: ghcr.io/rochdy/keeper:ca81251fc20f4907794ac9df5a9c5f370205de63
+        image: ghcr.io/rochdy/keeper-api:ca81251fc20f4907794ac9df5a9c5f370205de63
         ports:
         - containerPort: 3000
         resources:
@@ -27,16 +27,3 @@ spec:
           requests:
             memory: "128Mi"
             cpu: "250m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: grade-submission-api
-  namespace: default
-spec:
-  selector:
-    app: grade-submission-api
-  ports:
-  - port: 80
-    targetPort: 3000
-  type: ClusterIP

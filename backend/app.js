@@ -10,7 +10,7 @@ let grades = [];
 
 app.get('/grades', (req, res) => {
   console.log('Received GET -request for grades');
-  res.json({ 'grades': grades });
+  res.json(grades);
 });
 
 app.post('/grades', (req, res) => {
@@ -26,3 +26,15 @@ const port = 3000;
 app.listen(port, () => {
   console.log(`Grade service is running on port ${port}`);
 });
+
+
+// To get this Node.js API up and running:
+//
+//  First, install the dependencies listed in package.json:
+//   npm install
+//
+// Then, start the API server with:
+//   node app.js
+//
+
+// Trigger CI/CD pipeline...

@@ -1,0 +1,16 @@
+# Applies when the build context is the repository root (e.g. docker build .).
+# Contexts ./backend and ./frontend use their own .dockerignore next to each Dockerfile.
+
+.git
+.github
+
+**/.DS_Store
+**/.env
+**/.env.*
+
+**/node_modules
+**/dist
+**/build
+**/coverage
+
+*.md

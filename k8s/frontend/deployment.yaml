@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grade-submission-frontend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grade-submission-frontend
+  template:
+    metadata:
+      labels:
+        app: grade-submission-frontend
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      containers:
+      - name: grade-submission-frontend
+        image: ghcr.io/rochdy/keeper-frontend:ca81251fc20f4907794ac9df5a9c5f370205de63
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
